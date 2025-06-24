@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: telegram-google-bot
+    env: python
+    plan: free
+    buildCommand: ""
+    startCommand: python telegram_to_google.py
+    envVars:
+      - key: TELEGRAM_TOKEN
+        value: 7709815825:AAGcnXWIt0i8OUTVY40k_xwWtrCUmSRiJk4

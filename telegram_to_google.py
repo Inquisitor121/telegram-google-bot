@@ -1,11 +1,11 @@
 import os
 import json
-import telebot
 import gspread
+import telebot
 from oauth2client.service_account import ServiceAccountCredentials
 
-TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
-GOOGLE_CREDENTIALS = os.environ.get('GOOGLE_CREDENTIALS')
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+GOOGLE_CREDENTIALS = os.environ.get("GOOGLE_CREDENTIALS")
 
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
@@ -25,7 +25,7 @@ def handle_message(message):
     username = message.from_user.username or ""
     text = message.text
     sheet.append_row([username, text])
-    bot.reply_to(message, "✅ Записано в таблицу")
+    bot.reply_to(message, "✅ Записано в таблицу!")
 
 print("Бот запущен и ожидает сообщения...")
 bot.polling()
