@@ -4,45 +4,32 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import os
 import json
+import re
 
-# Токен Telegram из переменной окружения
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-
-# Путь к JSON-файлу с ключом
-creds_path = "telegram-bot-credentials.json"
-with open(creds_path) as source:
-    creds_dict = json.load(source)
-
-scope = [
-    "https://spreadsheets.google.com/feeds",
-    "https://www.googleapis.com/auth/drive"
-]
+# Загрузка credentials
+creds_dict = json.loads(os.environ["GOOGLE_CREDS"])
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 client = gspread.authorize(creds)
+sheet = client.open("ТС-Энерго Бот").worksheet("Лист6")
 
-# Открытие Google Таблицы
-spreadsheet = client.open("ТС-Энерго Бот")
-sheet = spreadsheet.worksheet("Лист6")
+bot = telebot.TeleBot(os.environ["TELEGRAM_TOKEN"])
 
-# Инициализация бота
-bot = telebot.TeleBot(TELEGRAM_TOKEN)
-
-@bot.message_handler(func=lambda message: True)
+@bot.message_handler(func=lambda m: True)
 def handle_message(message):
-    try:
-        parts = message.text.split("/")
-        if len(parts) != 5:
-            bot.reply_to(message, "Пожалуйста, введите данные в формате:\nСумма/Статья/Контрагент/Комментарий/Объект")
-            return
+    username = message.from_user.first_name or "Неизв."
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    text = message.text.strip()
 
-        date = datetime.now().strftime("%Y-%m-%d")
-        username = message.from_user.first_name
-        row = [date, username] + parts
+    # Разбиваем по разделителю '/'. Убираем лишние пробелы.
+    parts = [part.strip() for part in re.split(r'\s*/\s*', text)]
 
-        sheet.append_row(row)
-        bot.reply_to(message, "✅ Данные добавлены в таблицу.")
-    except Exception as e:
-        bot.reply_to(message, f"⚠️ Ошибка при добавлении данных: {e}")
+    # Обеспечим минимум 5 частей (Сумма, Статья, Контрагент, Комментарий, Объект)
+    parts += [""] * (5 - len(parts))
+    parts = parts[:5]
 
-# Запуск бота
-bot.polling(none_stop=True)
+    row = [username, timestamp] + parts
+    sheet.append_row(row)
+    bot.reply_to(message, "✅ Записано: " + " | ".join(parts))
+
+bot.polling()
