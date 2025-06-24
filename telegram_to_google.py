@@ -4,24 +4,23 @@ import telebot
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-# Загрузка токена и учетных данных из переменных окружения
+# Загрузка токена телеграм-бота из переменной окружения
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-GOOGLE_CREDENTIALS = os.environ.get("GOOGLE_CREDENTIALS")
 
-# Области доступа к Google Sheets и Google Drive
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+# Пути и области доступа для Google Sheets
+CREDENTIALS_PATH = "/etc/secrets/credentials.json"
+SCOPES = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
-# Настройка авторизации через gspread
-if GOOGLE_CREDENTIALS:
-    creds_dict = json.loads(GOOGLE_CREDENTIALS)
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-else:
-    creds = ServiceAccountCredentials.from_json_keyfile_name("telegram-bot-credentials.json", scope)
+# Загрузка учетных данных
+with open(CREDENTIALS_PATH) as f:
+    creds_dict = json.load(f)
+creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPES)
 
+# Авторизация и подключение к Google Таблице
 client = gspread.authorize(creds)
-sheet = client.open("ТС-Энерго Бот").worksheet("Лист6")
+sheet = client.open("ТС-Энерго Бот").worksheet("Лист6")  # Заменить, если названия другие
 
-# Настройка телеграм-бота
+# Настройка Telegram-бота
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
 @bot.message_handler(commands=["start"])
