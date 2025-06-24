@@ -1,38 +1,48 @@
-import os
-import json
 import telebot
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from datetime import datetime
+import os
+import json
 
-# Загрузка токена телеграм-бота из переменной окружения
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+# Токен Telegram из переменной окружения
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 
-# Пути и области доступа для Google Sheets
-CREDENTIALS_PATH = "/etc/secrets/credentials.json"
-SCOPES = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+# Путь к JSON-файлу с ключом
+creds_path = "telegram-bot-credentials.json"
+with open(creds_path) as source:
+    creds_dict = json.load(source)
 
-# Загрузка учетных данных
-with open(CREDENTIALS_PATH) as f:
-    creds_dict = json.load(f)
-creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPES)
-
-# Авторизация и подключение к Google Таблице
+scope = [
+    "https://spreadsheets.google.com/feeds",
+    "https://www.googleapis.com/auth/drive"
+]
+creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 client = gspread.authorize(creds)
-sheet = client.open("ТС-Энерго Бот").worksheet("Лист6")  # Заменить, если названия другие
 
-# Настройка Telegram-бота
+# Открытие Google Таблицы
+spreadsheet = client.open("ТС-Энерго Бот")
+sheet = spreadsheet.worksheet("Лист6")
+
+# Инициализация бота
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-@bot.message_handler(commands=["start"])
-def send_welcome(message):
-    bot.reply_to(message, "Привет! Напиши мне что-нибудь, и я сохраню это в таблицу Google Sheets.")
-
 @bot.message_handler(func=lambda message: True)
-def echo_all(message):
-    user = message.from_user.first_name
-    text = message.text
-    sheet.append_row([user, text])
-    bot.reply_to(message, "Сохранил в таблицу!")
+def handle_message(message):
+    try:
+        parts = message.text.split("/")
+        if len(parts) != 5:
+            bot.reply_to(message, "Пожалуйста, введите данные в формате:\nСумма/Статья/Контрагент/Комментарий/Объект")
+            return
 
-print("Бот запущен и ожидает сообщения...")
-bot.polling()
+        date = datetime.now().strftime("%Y-%m-%d")
+        username = message.from_user.first_name
+        row = [date, username] + parts
+
+        sheet.append_row(row)
+        bot.reply_to(message, "✅ Данные добавлены в таблицу.")
+    except Exception as e:
+        bot.reply_to(message, f"⚠️ Ошибка при добавлении данных: {e}")
+
+# Запуск бота
+bot.polling(none_stop=True)
