@@ -39,10 +39,9 @@ def send_welcome(message):
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     user = message.from_user.first_name
-    date = datetime.now().strftime("%Y-%m-%d %H:%M")
+    date = datetime.now().strftime("%d.%m.%Y")  # только дата
     parts = [p.strip() for p in message.text.split("/")]
 
-    # Убедимся, что есть хотя бы 5 столбцов
     while len(parts) < 5:
         parts.append("")
 
